@@ -27,12 +27,12 @@ public class run2 {
     static class State implements Comparable<State> {
         int distance;
         String[] robotPositions;
-        int keyState;
+        int keysMask;
 
-        State(int distance, String[] robotPositions, int keyState) {
+        State(int distance, String[] robotPositions, int keysMask) {
             this.distance = distance;
             this.robotPositions = robotPositions;
-            this.keyState = keyState;
+            this.keysMask = keysMask;
         }
 
         @Override
@@ -48,7 +48,7 @@ public class run2 {
         Map<String, int[]> location = new HashMap<>();
         int counter = 0;
         // Find points of interest and calculate target state
-        int targetState = 0;
+        int targetKeysMask = 0;
         for (int row = 0; row < R; row++) {
             for (int col = 0; col < C; col++) {
                 char v = data[row][col];
@@ -60,7 +60,7 @@ public class run2 {
                         location.put(newVal, new int[]{row, col});
                         counter++;
                     } else if (Character.isLowerCase(v)) {
-                        targetState = addKeyToState(v, targetState);
+                        targetKeysMask = addKeyToState(v, targetKeysMask);
                         location.put(String.valueOf(v), new int[]{row, col});
                     } else {
                         location.put(String.valueOf(v), new int[]{row, col});
@@ -80,12 +80,12 @@ public class run2 {
             dists.put(place, bfsFrom(place, location, data, R, C));
         }
 
-        return dijkstra(dists, allRobots, targetState);
+        return dijkstra(dists, allRobots, targetKeysMask);
     }
 
 
     // Dijkstra's algorithm
-    private static int dijkstra(Map<String, Map<String, Integer>> dists, String[] initialRobots, int targetState) {
+    private static int dijkstra(Map<String, Map<String, Integer>> dists, String[] initialRobots, int targetKeysMask) {
         PriorityQueue<State> pq = new PriorityQueue<>();
         pq.offer(new State(0, initialRobots, 0));
 
@@ -97,12 +97,12 @@ public class run2 {
             State curr = pq.poll();
             int d = curr.distance;
             String[] allRobotsPlaces = curr.robotPositions;
-            int state = curr.keyState;
+            int keysMask = curr.keysMask;
 
-            String currKey = getRobotStateId(allRobotsPlaces, state);
+            String currKey = getRobotStateId(allRobotsPlaces, keysMask);
 
             if (finalDist.getOrDefault(currKey, Integer.MAX_VALUE) < d) continue;
-            if (state == targetState) return d;
+            if (keysMask == targetKeysMask) return d;
 
             for (int i = 0; i < allRobotsPlaces.length; i++) {
                 String robotPlace = allRobotsPlaces[i];
@@ -113,13 +113,13 @@ public class run2 {
                     String destination = entry.getKey();
                     int innerD = entry.getValue();
 
-                    int innerState = state;
+                    int innerState = keysMask;
 
                     char destChar = destination.charAt(0);
                     if (Character.isLowerCase(destChar)) {
                         innerState = addKeyToState(destChar, innerState);
                     } else if (Character.isUpperCase(destChar)) {
-                        if (!hasKey(destChar, state)) {
+                        if (!hasKey(destChar, keysMask)) {
                             continue;
                         }
                     }
@@ -182,22 +182,22 @@ public class run2 {
     }
 
     // Helper method to create a unique key for robot positions and state
-    static private String getRobotStateId(String[] robotPlaces, int state) {
+    static private String getRobotStateId(String[] robotPlaces, int keysMask) {
         StringBuilder sb = new StringBuilder();
         for (String place : robotPlaces) {
             sb.append(place).append(",");
         }
-        sb.append("#").append(state);
+        sb.append("#").append(keysMask);
         return sb.toString();
     }
 
     // Helper method to work with keys and doors
-    private static int addKeyToState(char key, int state) {
-        return state | (1 << (key - 'a'));
+    private static int addKeyToState(char key, int keysMask) {
+        return keysMask | (1 << (key - 'a'));
     }
 
-    private static boolean hasKey(char door, int state) {
-        return (state & (1 << (door - 'A'))) != 0;
+    private static boolean hasKey(char door, int keysMask) {
+        return (keysMask & (1 << (door - 'A'))) != 0;
     }
 
     public static void main(String[] args) throws IOException {
